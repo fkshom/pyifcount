@@ -9,7 +9,7 @@ class Count():
     def __init__(self, filename, initial=0) -> None:
         self._filename = filename
         self._sum = initial
-        self._cur = self._get_from_file()
+        self._cur = None
 
     def _get_from_file(self) -> int:
         with open(self._filename, 'r') as f:
@@ -20,7 +20,7 @@ class Count():
 
     def refresh(self) -> None:
         new = self._get_from_file()
-        self._sum += new - self._cur
+        self._sum += new - (self._cur or new)
         self._cur = new
 
     @property
@@ -167,6 +167,7 @@ class PyCount():
                 ds.set(name, self.targets[name].sum)
 
     def __getitem__(self, key):
+        print('prcnt getitem called')
         if self.autorefresh:
             self.refresh(names=[key])
         return self.targets[key]
@@ -185,6 +186,23 @@ class Interface():
     def metrics(self):
         return list(self._metrics.keys())
 
+        
+class Interface2():
+    def __init__(self, interfacename, pycnt) -> None:
+        self._metrics = {}
+        self._interfacename = interfacename
+        self._pycnt = pycnt
+
+    def __getattr__(self, key):
+        return self._pycnt[f'{self._interfacename}.{key}']
+
+    def __getitem__(self, key):
+        return self._pycnt[f'{self._interfacename}.{key}']
+
+    @property
+    def metrics(self):
+        return list(self._metrics.keys())
+
 class PyIfCount():
     def __init__(self, datastore, interfaces=[], autorefresh=False):
         self._pycnt = PyCount(datastore=datastore, autorefresh=autorefresh)
@@ -195,7 +213,7 @@ class PyIfCount():
 
     def add_interface(self, interface, metrics=['rx_bytes', 'tx_bytes']):
         self._interfaces[interface] = type('Interface', (), {})()
-        self._interfaces[interface] = Interface()
+        self._interfaces[interface] = Interface2(interface, self._pycnt)
         for metric in metrics:
             self._pycnt.regist(
                 name=f"{interface}.{metric}",

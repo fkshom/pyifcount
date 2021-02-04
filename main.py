@@ -10,6 +10,7 @@ def main():
     )
     pyifcnt.add_interface(interface='ens33', metrics=['tx_bytes', 'rx_bytes'])
 
+
     while True:
         print(
             f"rx:{pyifcnt.ens33.rx_bytes.sum}({pyifcnt.ens33.rx_bytes.cur})"
@@ -19,7 +20,7 @@ def main():
         print(pyifcnt.interfaces)
         print(pyifcnt['ens33'])
         print(pyifcnt['ens33'].metrics)
-        pyifcnt.refresh()
+        #pyifcnt.refresh()
         time.sleep(1)
         
 
