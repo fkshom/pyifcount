@@ -6,25 +6,30 @@ import contextlib
 logger = logging.getLogger(__name__)
 
 class Count():
-    def __init__(self, filename, initial=0):
-        self.filename = filename
-        self.sum = initial
-        self.diff = None
-        self.cur = self._get()
+    def __init__(self, filename, initial=0) -> None:
+        self._filename = filename
+        self._sum = initial
+        self._cur = self._get_from_file()
 
-    def _get(self):
-        with open(self.filename, 'r') as f:
+    def _get_from_file(self) -> int:
+        with open(self._filename, 'r') as f:
             return int(f.read())
 
-    def set(self, value):
-        self.sum = value
+    def set_sum(self, value) -> None:
+        self._sum = value
 
-    def refresh(self):
-        new = self._get()
-        self.diff = new - self.cur
-        self.sum += self.diff
-        self.cur = new
+    def refresh(self) -> None:
+        new = self._get_from_file()
+        self._sum += new - self._cur
+        self._cur = new
 
+    @property
+    def sum(self) -> int:
+        return self._sum
+    
+    @property
+    def cur(self) -> int:
+        return self._cur
 
 class AbstructDataStore():
     def __init__(self):
@@ -33,153 +38,189 @@ class AbstructDataStore():
     def __str__(self): return str(self.__dict__)
     def __repr__(self): return str(self.__dict__)
 
-    def get(self, key, default=None):
-        raise NotImplementedError()
-
-    def set(self, key, value):
-        raise NotImplementedError()
-
-    def clear(self):
-        raise NotImplementedError()
-
-    def reload(self):
-        raise NotImplementedError()
-    
-    def save(self):
-        raise NotImplementedError()
-
-    def add_event_listener(self, event_name, func):
-        if not self.event_listener.get(event_name):
-            self.event_listener[event_name] = []
-        self.event_listener[event_name].append(func)
-
-    def notify(self, event_name):
+    # リスナーにイベントを通知する
+    def _notify(self, event_name):
         for listener in self.event_listener.get(event_name, []):
             listener()
 
-
-class MemoryDataStore(AbstructDataStore):
-    def __init__(self):
-        self.data = {}
-        super().__init__()
-    
+    # keyの値を返す
     def get(self, key, default=None):
-        return self.data.get(key, default)
+        raise NotImplementedError()
 
+    # keyの値を設定する
     def set(self, key, value):
-        self.data[key] = value
+        raise NotImplementedError()
 
+    # ストアをクリアする
     def clear(self):
-        self.data = {}
-        self.notify('store_reloaded')
+        raise NotImplementedError()
 
-
-class YamlDataStore(AbstructDataStore):
-    def __init__(self, filename):
-        self.data = {}
-        self.filename = filename
-        self.data = self._load_or_create_datafile()
-        super().__init__()
-
-    def _load_or_create_datafile(self):
-        if not os.path.exists(self.filename):
-            logger.debug("new file created")
-            self._create_datafile()
-        
-        with open(self.filename, 'r') as f:
-            tmp = yaml.safe_load(f) or {}
-            logger.debug(f"file loaded: " + str(tmp))
-            return tmp
-
-    def _create_datafile(self):
-        with open(self.filename, 'w') as f:
-            yaml.dump({}, f)
-
-    def _write_datafile(self):
-        logger.debug("write_datafile: " + str(self.data))
-
-        with open(self.filename, 'w') as f:
-            yaml.dump(self.data, f)
-
-    def get(self, key, default=None):
-        return self.data.get(key, default)
-
-    def set(self, key, value):
-        self.data[key] = value
-
-    def clear(self):
-        self.data = {}
-        self._write_datafile()
-        self.notify('store_reloaded')
-
-    def save(self):
-        self._write_datafile()
-
+    # ストアファイルから値を読み込む
     def reload(self):
-        logger.debug("reload called")
-        self.data = self._load_or_create_datafile()
-        self.notify('store_reloaded')
+        raise NotImplementedError()
+    
+    # ストアファイルに値を保存する
+    def save(self):
+        raise NotImplementedError()
 
+    # イベントリスナの登録
+    def add_event_listener(self, event_name, func):
+        self.event_listener.setdefault(event_name, [])
+        self.event_listener[event_name].append(func)
+
+    # ストアファイルに値を保存する。ストアファイルの情報が更新されている可能性があるので、事前に再読み込みする
+    # yieldで、値の更新（self.set）が行われる想定
     @contextlib.contextmanager
     def update(self):
         self.reload()
         yield self
         self.save()
 
+class MemoryDataStore(AbstructDataStore):
+    def __init__(self):
+        self._data = {}
+        super().__init__()
+    
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def set(self, key, value):
+        self._data[key] = value
+
+    def clear(self):
+        self._data = {}
+        self._notify('store_reloaded')
+
+    def save(self):
+        return None
+
+    def reload(self):
+        self._notify('store_reloaded')
+
+class YamlDataStore(AbstructDataStore):
+    def __init__(self, filename):
+        self._data = {}
+        self._filename = filename
+        self._data = self._load_or_create_datafile()
+        super().__init__()
+
+    def _load_or_create_datafile(self):
+        if not os.path.exists(self._filename):
+            logger.debug("new file created")
+            self._create_datafile()
+        
+        with open(self._filename, 'r') as f:
+            tmp = yaml.safe_load(f) or {}
+            logger.debug(f"file loaded: " + str(tmp))
+            return tmp
+
+    def _create_datafile(self):
+        with open(self._filename, 'w') as f:
+            yaml.dump({}, f)
+
+    def _write_datafile(self):
+        logger.debug("write_datafile: " + str(self._data))
+        with open(self._filename, 'w') as f:
+            yaml.dump(self._data, f)
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def set(self, key, value):
+        self._data[key] = value
+
+    def clear(self):
+        self._data = {}
+        self._write_datafile()
+        self._notify('store_reloaded')
+
+    def save(self):
+        self._write_datafile()
+
+    def reload(self):
+        logger.debug("reload called")
+        self._data = self._load_or_create_datafile()
+        self._notify('store_reloaded')
+
+
 class PyCount():
-    def __init__(self, datastore):
+    def __init__(self, datastore, autorefresh=False):
         self.datastore = datastore
+        self.autorefresh = autorefresh
         self.datastore.add_event_listener('store_reloaded', self._store_reloaded_event)
         self.targets = {}
 
     def _store_reloaded_event(self):
         logger.debug("_store_reloaded_event called")
         for name in self.targets.keys():
-            self.targets[name].set(self.datastore.get(name, 0))
+            self.targets[name].set_sum(self.datastore.get(name, 0))
 
-    def regist(self, name, filename):
+    def regist(self, name, filename, autorefresh=False):
         initial_value = self.datastore.get(name, 0)
         self.targets[name] = Count(filename=filename, initial=initial_value)
 
-    def refresh(self):
+    def refresh(self, names=None):
+        names = names or self.targets.keys()
         with self.datastore.update() as ds:
-            for name in self.targets.keys():
+            for name in names:
                 self.targets[name].refresh()
                 ds.set(name, self.targets[name].sum)
 
-    def refresh1(self):
-        self.datastore.reload()
-        for name in self.targets.keys():
-            self.targets[name].refresh()
-            self.datastore.set(name, self.targets[name].sum)
-        self.datastore.save()
-
     def __getitem__(self, key):
+        if self.autorefresh:
+            self.refresh(names=[key])
         return self.targets[key]
 
+class Interface():
+    def __init__(self) -> None:
+        self._metrics = {}
 
+    def __getattr__(self, key):
+        return self._metrics[key]
+
+    def __getitem__(self, key):
+        return self._metrics[key]
+
+    @property
+    def metrics(self):
+        return list(self._metrics.keys())
 
 class PyIfCount():
-    def __init__(self, interfaces, datastore):
-        self.interfaces = interfaces
-        self.datastore = datastore
-        self.pycnt = PyCount(datastore=self.datastore)
+    def __init__(self, datastore, interfaces=[], autorefresh=False):
+        self._pycnt = PyCount(datastore=datastore, autorefresh=autorefresh)
+        self._interfaces = {}
 
-        class Interface():
-            def __str__(self): return str(self.__dict__)
-            def __repr__(self): return str(self.__dict__)
-
-        # interfacesを列挙して、必要なメトリクスをwatchする
-        metrics = ['rx_bytes', 'tx_bytes']
         for interface in interfaces:
-            self.__dict__[interface] = Interface()
-            for metric in metrics:
-                self.pycnt.regist(
-                    name=f"{interface}.{metric}",
-                    filename=f"/sys/class/net/{interface}/statistics/{metric}",
-                )
-                self.__dict__[interface].__dict__[metric] = self.pycnt[f'{interface}.{metric}']
-        
+            self.add_interface(interface)
+
+    def add_interface(self, interface, metrics=['rx_bytes', 'tx_bytes']):
+        self._interfaces[interface] = type('Interface', (), {})()
+        self._interfaces[interface] = Interface()
+        for metric in metrics:
+            self._pycnt.regist(
+                name=f"{interface}.{metric}",
+                filename=f"/sys/class/net/{interface}/statistics/{metric}",
+            )
+            self._interfaces[interface]._metrics[metric] = self._pycnt[f'{interface}.{metric}']
+
+    def __getattr__(self, key):
+        return self._interfaces[key]
+
+    def __getitem__(self, key):
+        return self._interfaces[key]
+
+    @property
+    def autorefresh(self):
+        return self._pycnt.autorefresh
+
+    @autorefresh.setter
+    def autorefresh(self, value):
+        self._pycnt.autorefresh = value
+
+    @property
+    def interfaces(self):
+        return list(self._interfaces.keys())
+
     def refresh(self):
-        self.pycnt.refresh()
+        self._pycnt.refresh()
 

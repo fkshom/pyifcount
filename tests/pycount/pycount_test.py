@@ -16,7 +16,7 @@ def remove_if_exists(filepath):
 class Test機能テスト():
     @pytest.fixture(scope='function', autouse=True)
     def scope_function(self, mocker):
-        count_get = mocker.patch.object(pycount.Count, "_get", return_value=100)
+        count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
         #datastore = pycount.MemoryDataStore()
         remove_if_exists("/tmp/pycount.yml")
         datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
@@ -46,6 +46,21 @@ class Test機能テスト():
         self.pycnt.refresh()
         assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
         assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+
+    def test_autorefreshが有効ならメトリクス名アクセスのタイミングで値が更新される(self, scope_function):
+        (count_get, datastore) = scope_function
+        self.pycnt.autorefresh = True
+        self.pycnt.regist(
+            name="ens33.rx_bytes",
+            filename="path_to_ens33_rx_bytes",
+        )
+        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+        count_get.return_value = 200
+        # self.pycnt.refresh()
+        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+
 
     def test_datastoreリセットしたら追従する(self, scope_function):
         (count_get, datastore) = scope_function
@@ -91,7 +106,7 @@ class Testデータファイルが存在しない場合():
     def scope_function(self, mocker):
         remove_if_exists("/tmp/pycount.yml")
         # rx_bytes等が存在しない可能性があるのでmock
-        count_get = mocker.patch.object(pycount.Count, "_get", return_value=100)
+        count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
         datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
         self.pycnt = pycount.PyCount(
             datastore=datastore
@@ -120,7 +135,7 @@ class Testデータファイルが存在する場合():
             yaml.dump(data, f)
         
         # rx_bytes等が存在しない可能性があるのでmock
-        count_get = mocker.patch.object(pycount.Count, "_get", return_value=100)
+        count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
         datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
         self.pycnt = pycount.PyCount(
             datastore=datastore
