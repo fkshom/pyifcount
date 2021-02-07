@@ -11,15 +11,15 @@ class Count():
         self._sum = initial
         self._cur = None
 
-    def _get_from_file(self) -> int:
-        with open(self._filename, 'r') as f:
+    def _get_from_file(self, filename) -> int:
+        with open(filename, 'r') as f:
             return int(f.read())
 
     def set_sum(self, value) -> None:
         self._sum = value
 
     def refresh(self) -> None:
-        new = self._get_from_file()
+        new = self._get_from_file(self._filename)
         self._sum += new - (self._cur or new)
         self._cur = new
 
