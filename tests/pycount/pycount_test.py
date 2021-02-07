@@ -14,92 +14,149 @@ def remove_if_exists(filepath):
         pass
 
 class Test機能テスト():
-    @pytest.fixture(scope='function', autouse=True)
-    def scope_function(self, mocker):
-        count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
-        #datastore = pycount.MemoryDataStore()
-        remove_if_exists("/tmp/pycount.yml")
-        datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
-        self.pycnt = pycount.PyCount(
-            datastore=datastore
-        )
-        yield (count_get, datastore)
-        remove_if_exists("/tmp/pycount.yml")
-    
-    def test_インスタンスに監視対象をregistできる(self):
-        self.pycnt.regist(
-            name="ens33.rx_bytes",
-            filename="path_to_ens33_rx_bytes"
-        )
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+    class TestAutoRefreshがFalseのとき():
+        @pytest.fixture(scope='function', autouse=True)
+        def scope_function(self, mocker):
+            count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
+            remove_if_exists("/tmp/pycount.yml")
+            datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
+            self.pycnt = pycount.PyCount(datastore=datastore, autorefresh=False)
+            yield (count_get, datastore)
+            remove_if_exists("/tmp/pycount.yml")
+        
+        def test_インスタンスに監視対象をregistできる(self):
+            self.pycnt.regist(
+                name="ens33.rx_bytes",
+                filename="path_to_ens33_rx_bytes"
+            )
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
 
-    def test_refreshしたら値が更新される(self, scope_function):
-        (count_get, datastore) = scope_function
-        self.pycnt.regist(
-            name="ens33.rx_bytes",
-            filename="path_to_ens33_rx_bytes"
-        )
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
-        count_get.return_value = 200
-        self.pycnt.refresh()
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+        def test_refreshしたら値が更新される(self, scope_function):
+            (count_get, datastore) = scope_function
+            self.pycnt.regist(
+                name="ens33.rx_bytes",
+                filename="path_to_ens33_rx_bytes"
+            )
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(None)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 200
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
 
-    def test_autorefreshが有効ならメトリクス名アクセスのタイミングで値が更新される(self, scope_function):
-        (count_get, datastore) = scope_function
-        self.pycnt.autorefresh = True
-        self.pycnt.regist(
-            name="ens33.rx_bytes",
-            filename="path_to_ens33_rx_bytes",
-        )
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
-        count_get.return_value = 200
-        # self.pycnt.refresh()
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+        def test_datastoreリセットしたら追従する(self, scope_function):
+            (count_get, datastore) = scope_function
+            self.pycnt.regist(
+                name="ens33.rx_bytes",
+                filename="path_to_ens33_rx_bytes"
+            )
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 200
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+            datastore.clear()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 200
+            self.pycnt.refresh()
 
+        def test_datastoreファイルを削除したらrefreshの時点で追従する(self, scope_function):
+            (count_get, datastore) = scope_function
+            self.pycnt.regist(
+                name="ens33.rx_bytes",
+                filename="path_to_ens33_rx_bytes",
+            )
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 200
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+            remove_if_exists("/tmp/pycount.yml")
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+            count_get.return_value = 250
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(250)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(50)
 
-    def test_datastoreリセットしたら追従する(self, scope_function):
-        (count_get, datastore) = scope_function
-        self.pycnt.regist(
-            name="ens33.rx_bytes",
-            filename="path_to_ens33_rx_bytes"
-        )
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
-        count_get.return_value = 200
-        self.pycnt.refresh()
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
-        datastore.clear()
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
-        count_get.return_value = 200
-        self.pycnt.refresh()
+    class TestAutoRefreshがTrueのとき():
+        @pytest.fixture(scope='function', autouse=True)
+        def scope_function(self, mocker):
+            count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
+            remove_if_exists("/tmp/pycount.yml")
+            datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
+            self.pycnt = pycount.PyCount(datastore=datastore, autorefresh=True)
+            yield (count_get, datastore)
+            remove_if_exists("/tmp/pycount.yml")
 
-    def test_datastoreファイルを削除したらrefreshの時点で追従する(self, scope_function):
-        (count_get, datastore) = scope_function
-        self.pycnt.regist(
-            name="ens33.rx_bytes",
-            filename="path_to_ens33_rx_bytes"
-        )
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
-        count_get.return_value = 200
-        self.pycnt.refresh()
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
-        remove_if_exists("/tmp/pycount.yml")
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
-        count_get.return_value = 250
-        self.pycnt.refresh()
-        assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(250)
-        assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(50)
+        def test_インスタンスに監視対象をregistできる(self):
+            self.pycnt.regist(
+                name="ens33.rx_bytes",
+                filename="path_to_ens33_rx_bytes"
+            )
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
 
+        def test_refreshしたら値が更新される(self, scope_function):
+            (count_get, datastore) = scope_function
+            self.pycnt.regist(
+                name="ens33.rx_bytes",
+                filename="path_to_ens33_rx_bytes"
+            )
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 200
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+
+        def test_datastoreリセットしたら追従する(self, scope_function):
+            (count_get, datastore) = scope_function
+            self.pycnt.regist(
+                name="ens33.rx_bytes",
+                filename="path_to_ens33_rx_bytes"
+            )
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 200
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+            datastore.clear()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 200
+            self.pycnt.refresh()
+
+        def test_datastoreファイルを削除したらrefreshの時点で追従する(self, scope_function):
+            (count_get, datastore) = scope_function
+            self.pycnt.regist(
+                name="ens33.rx_bytes",
+                filename="path_to_ens33_rx_bytes",
+            )
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 200
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
+            remove_if_exists("/tmp/pycount.yml")
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
+            count_get.return_value = 250
+            self.pycnt.refresh()
+            assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(250)
+            assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(50)
 
 class Testデータファイルが存在しない場合():
     @pytest.fixture(scope='function', autouse=True)
@@ -175,3 +232,28 @@ class Testデータファイルが存在する場合():
         assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
         assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(150)
         
+class Testメトリクスファイルが存在しない場合():
+    def test_addの時点では例外を発生させない(self):
+        datastore = pycount.MemoryDataStore()
+        pycnt = pycount.PyCount(
+            datastore=datastore
+        )
+        pycnt.regist(
+            name="invalid_interface.rx_bytes",
+            filename="path_to_invalid_interface_rx_bytes"
+        )
+
+    def test_メトリクス読み込み時点で例外を発生させる(self):
+        datastore = pycount.MemoryDataStore()
+        pycnt = pycount.PyCount(
+            datastore=datastore
+        )
+        pycnt.regist(
+            name="invalid_interface.rx_bytes",
+            filename="path_to_invalid_interface_rx_bytes"
+        )
+        try:
+            pycnt['invalid_interface.rx_bytes'].sum
+            fail('should have raised error')
+        except FileNotFoundError as e:
+            assert_that(str(e)).is_equal_to("[Errno 2] No such file or directory: 'path_to_invalid_interface_rx_bytes'")

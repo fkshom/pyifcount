@@ -8,14 +8,11 @@ authors = ["FUKUDA Shoma <fkshom@gmail.com>"]
 python = "^3.8"
 pyyaml = "^5.3.1"
 pytest-mock = "^3.3.1"
+pytest-watch = "^4.2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1.2"
 assertpy = "^1.1"
-
-[build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
 
 [tool.pytest.ini_options]
 #addopts = "-v --capture=no -s"
@@ -23,3 +20,7 @@ build-backend = "poetry.masonry.api"
 log_cli = "1"
 log_cli_level = "DEBUG"
 log_cli_format = "%(message)s"
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+

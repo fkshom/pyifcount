@@ -144,7 +144,7 @@ class YamlDataStore(AbstructDataStore):
 
 
 class PyCount():
-    def __init__(self, datastore, autorefresh=False):
+    def __init__(self, datastore, autorefresh=True):
         self.datastore = datastore
         self.autorefresh = autorefresh
         self.datastore.add_event_listener('store_reloaded', self._store_reloaded_event)
@@ -155,7 +155,7 @@ class PyCount():
         for name in self.targets.keys():
             self.targets[name].set_sum(self.datastore.get(name, 0))
 
-    def regist(self, name, filename, autorefresh=False):
+    def regist(self, name, filename):
         initial_value = self.datastore.get(name, 0)
         self.targets[name] = Count(filename=filename, initial=initial_value)
 
