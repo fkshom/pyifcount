@@ -1,6 +1,6 @@
 import pytest
 from assertpy import assert_that, fail
-import pycount
+import pyifcount
 import os
 import yaml
 import logging
@@ -17,10 +17,10 @@ class Test機能テスト():
     class TestAutoRefreshがFalseのとき():
         @pytest.fixture(scope='function', autouse=True)
         def scope_function(self, mocker):
-            count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
+            count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
             remove_if_exists("/tmp/pycount.yml")
-            datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
-            self.pycnt = pycount.PyCount(datastore=datastore, autorefresh=False)
+            datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+            self.pycnt = pyifcount.PyCount(datastore=datastore, autorefresh=False)
             yield (count_get, datastore)
             remove_if_exists("/tmp/pycount.yml")
         
@@ -92,10 +92,10 @@ class Test機能テスト():
     class TestAutoRefreshがTrueのとき():
         @pytest.fixture(scope='function', autouse=True)
         def scope_function(self, mocker):
-            count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
+            count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
             remove_if_exists("/tmp/pycount.yml")
-            datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
-            self.pycnt = pycount.PyCount(datastore=datastore, autorefresh=True)
+            datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+            self.pycnt = pyifcount.PyCount(datastore=datastore, autorefresh=True)
             yield (count_get, datastore)
             remove_if_exists("/tmp/pycount.yml")
 
@@ -163,9 +163,9 @@ class Testデータファイルが存在しない場合():
     def scope_function(self, mocker):
         remove_if_exists("/tmp/pycount.yml")
         # rx_bytes等が存在しない可能性があるのでmock
-        count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
-        datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
-        self.pycnt = pycount.PyCount(
+        count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
+        datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+        self.pycnt = pyifcount.PyCount(
             datastore=datastore
         )
         yield (count_get, datastore)
@@ -192,9 +192,9 @@ class Testデータファイルが存在する場合():
             yaml.dump(data, f)
         
         # rx_bytes等が存在しない可能性があるのでmock
-        count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
-        datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
-        self.pycnt = pycount.PyCount(
+        count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
+        datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+        self.pycnt = pyifcount.PyCount(
             datastore=datastore
         )
         yield (count_get, datastore)
@@ -234,8 +234,8 @@ class Testデータファイルが存在する場合():
         
 class Testメトリクスファイルが存在しない場合():
     def test_addの時点では例外を発生させない(self):
-        datastore = pycount.MemoryDataStore()
-        pycnt = pycount.PyCount(
+        datastore = pyifcount.MemoryDataStore()
+        pycnt = pyifcount.PyCount(
             datastore=datastore
         )
         pycnt.regist(
@@ -244,8 +244,8 @@ class Testメトリクスファイルが存在しない場合():
         )
 
     def test_メトリクス読み込み時点で例外を発生させる(self):
-        datastore = pycount.MemoryDataStore()
-        pycnt = pycount.PyCount(
+        datastore = pyifcount.MemoryDataStore()
+        pycnt = pyifcount.PyCount(
             datastore=datastore
         )
         pycnt.regist(

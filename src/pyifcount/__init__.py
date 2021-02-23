@@ -1,3 +1,5 @@
+__version__ = '0.0.1'
+
 import os
 import yaml
 import logging
@@ -167,7 +169,7 @@ class PyCount():
                 ds.set(name, self.targets[name].sum)
 
     def __getitem__(self, key):
-        print('prcnt getitem called')
+        logger.debug('PyCount.getitem called')
         if self.autorefresh:
             self.refresh(names=[key])
         return self.targets[key]

@@ -1,6 +1,6 @@
 import pytest
 from assertpy import assert_that, fail
-import pycount
+import pyifcount
 import os
 import yaml
 import logging
@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 class Test結合テスト():
     def scope_function_(self, mocker):
-        count_get = mocker.patch.object(pycount.Count, "_get_from_file", return_value=100)
-        datastore = pycount.YamlDataStore(filename="/tmp/pycount.yml")
-        self.pycnt = pycount.PyCount(
+        count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
+        datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+        self.pycnt = pyifcount.PyCount(
             datastore=datastore
         )
         yield (count_get, datastore)
@@ -30,20 +30,20 @@ class Test結合テスト():
             except KeyError as e:
                 raise FileNotFoundError()
         
-        pycount.Count._get_from_file = mocker.MagicMock(side_effect=_get_from_file_mock)
+        pyifcount.Count._get_from_file = mocker.MagicMock(side_effect=_get_from_file_mock)
         yield
 
 
     def test_インタフェースを登録することができる(self):
-        pyifcnt = pycount.PyIfCount(
-            datastore=pycount.MemoryDataStore(),
+        pyifcnt = pyifcount.PyIfCount(
+            datastore=pyifcount.MemoryDataStore(),
             autorefresh=True,
         )
         pyifcnt.add_interface(interface='some_interface', metrics=['tx_bytes', 'rx_bytes'])
 
     def test_値を取得することができる(self):
-        pyifcnt = pycount.PyIfCount(
-            datastore=pycount.MemoryDataStore(),
+        pyifcnt = pyifcount.PyIfCount(
+            datastore=pyifcount.MemoryDataStore(),
             autorefresh=True,
         )
         pyifcnt.add_interface(interface='some_interface', metrics=['tx_bytes', 'rx_bytes'])
