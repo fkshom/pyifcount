@@ -1,5 +1,3 @@
-__version__ = '0.0.3'
-
 import os
 import yaml
 import logging
@@ -74,10 +72,12 @@ class AbstructDataStore():
     # ストアファイルに値を保存する。ストアファイルの情報が更新されている可能性があるので、事前に再読み込みする
     # yieldで、値の更新（self.set）が行われる想定
     @contextlib.contextmanager
-    def update(self):
-        self.reload()
+    def update(self, reload=True, save=True):
+        if reload:
+            self.reload()
         yield self
-        self.save()
+        if save:
+            self.save()
 
 class MemoryDataStore(AbstructDataStore):
     def __init__(self):
@@ -169,12 +169,15 @@ class PyCount():
         initial_value = self.datastore.get(name, 0)
         self.targets[name] = Count(filename=filename, initial=initial_value)
 
-    def refresh(self, names=None):
+    def refresh(self, names=None, reload=True, save=True):
         names = names or self.targets.keys()
-        with self.datastore.update() as ds:
+        with self.datastore.update(reload=reload, save=save) as ds:
             for name in names:
                 self.targets[name].refresh()
                 ds.set(name, self.targets[name].sum)
+
+    def save(self):
+        self.datastore.save()
 
     def __getitem__(self, key):
         logger.debug('PyCount.getitem called')
@@ -234,6 +237,8 @@ class PyIfCount():
     def interfaces(self):
         return list(self._interfaces.keys())
 
-    def refresh(self):
-        self._pycnt.refresh()
+    def refresh(self, reload=True, save=True):
+        self._pycnt.refresh(reload=reload, save=save)
 
+    def save(self):
+        self._pycnt.save()

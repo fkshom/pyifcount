@@ -56,7 +56,7 @@ def main(args=None):
 
             def collect(self):
                 if self._manual_refresh:
-                    pyifcnt.refresh()
+                    pyifcnt.refresh(reload=False)
 
                 rx_bytes_sum = CounterMetricFamily('rx_bytes', 'Help text', labels=['interface']) # metric name: rx_bytes_total
                 tx_bytes_sum = CounterMetricFamily('tx_bytes', 'Help text', labels=['interface']) # metric name: tx_bytes_total
@@ -76,7 +76,7 @@ def main(args=None):
 
         while True:
             if args.read_interval and args.read_interval > 0:
-                pyifcnt.refresh()
+                pyifcnt.refresh(reload=False)
                 time.sleep(args.read_interval)
             else:
                 time.sleep(60)
