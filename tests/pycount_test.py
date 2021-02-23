@@ -16,13 +16,19 @@ def remove_if_exists(filepath):
 class Test機能テスト():
     class TestAutoRefreshがFalseのとき():
         @pytest.fixture(scope='function', autouse=True)
-        def scope_function(self, mocker):
+        def mock_pyifcountCount_get_from_file(self, mocker):
             count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
-            remove_if_exists("/tmp/pycount.yml")
-            datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
-            self.pycnt = pyifcount.PyCount(datastore=datastore, autorefresh=False)
-            yield (count_get, datastore)
-            remove_if_exists("/tmp/pycount.yml")
+            yield count_get
+
+        @pytest.fixture(scope='function', autouse=True)
+        def yaml_datastore(self, mocker):
+            try:
+                remove_if_exists("/tmp/pycount.yml")
+                datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+                self.pycnt = pyifcount.PyCount(datastore=datastore, autorefresh=False)
+                yield datastore
+            finally:
+                remove_if_exists("/tmp/pycount.yml")
         
         def test_インスタンスに監視対象をregistできる(self):
             self.pycnt.regist(
@@ -33,8 +39,9 @@ class Test機能テスト():
             assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
             assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
 
-        def test_refreshしたら値が更新される(self, scope_function):
-            (count_get, datastore) = scope_function
+        def test_refreshしたら値が更新される(self, yaml_datastore, mock_pyifcountCount_get_from_file):
+            datastore = yaml_datastore
+            count_get = mock_pyifcountCount_get_from_file
             self.pycnt.regist(
                 name="ens33.rx_bytes",
                 filename="path_to_ens33_rx_bytes"
@@ -49,8 +56,9 @@ class Test機能テスト():
             assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
             assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
 
-        def test_datastoreリセットしたら追従する(self, scope_function):
-            (count_get, datastore) = scope_function
+        def test_datastoreリセットしたら追従する(self, yaml_datastore, mock_pyifcountCount_get_from_file):
+            datastore = yaml_datastore
+            count_get = mock_pyifcountCount_get_from_file
             self.pycnt.regist(
                 name="ens33.rx_bytes",
                 filename="path_to_ens33_rx_bytes"
@@ -68,8 +76,9 @@ class Test機能テスト():
             count_get.return_value = 200
             self.pycnt.refresh()
 
-        def test_datastoreファイルを削除したらrefreshの時点で追従する(self, scope_function):
-            (count_get, datastore) = scope_function
+        def test_datastoreファイルを削除したらrefreshの時点で追従する(self, yaml_datastore, mock_pyifcountCount_get_from_file):
+            datastore = yaml_datastore
+            count_get = mock_pyifcountCount_get_from_file
             self.pycnt.regist(
                 name="ens33.rx_bytes",
                 filename="path_to_ens33_rx_bytes",
@@ -91,13 +100,19 @@ class Test機能テスト():
 
     class TestAutoRefreshがTrueのとき():
         @pytest.fixture(scope='function', autouse=True)
-        def scope_function(self, mocker):
+        def mock_pyifcountCount_get_from_file(self, mocker):
             count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
-            remove_if_exists("/tmp/pycount.yml")
-            datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
-            self.pycnt = pyifcount.PyCount(datastore=datastore, autorefresh=True)
-            yield (count_get, datastore)
-            remove_if_exists("/tmp/pycount.yml")
+            yield count_get
+
+        @pytest.fixture(scope='function', autouse=True)
+        def yaml_datastore(self, mocker):
+            try:
+                remove_if_exists("/tmp/pycount.yml")
+                datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+                self.pycnt = pyifcount.PyCount(datastore=datastore, autorefresh=True)
+                yield datastore
+            finally:
+                remove_if_exists("/tmp/pycount.yml")
 
         def test_インスタンスに監視対象をregistできる(self):
             self.pycnt.regist(
@@ -107,8 +122,9 @@ class Test機能テスト():
             assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(100)
             assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(0)
 
-        def test_refreshしたら値が更新される(self, scope_function):
-            (count_get, datastore) = scope_function
+        def test_refreshしたら値が更新される(self, yaml_datastore, mock_pyifcountCount_get_from_file):
+            datastore = yaml_datastore
+            count_get = mock_pyifcountCount_get_from_file
             self.pycnt.regist(
                 name="ens33.rx_bytes",
                 filename="path_to_ens33_rx_bytes"
@@ -120,8 +136,9 @@ class Test機能テスト():
             assert_that(self.pycnt['ens33.rx_bytes'].cur).is_equal_to(200)
             assert_that(self.pycnt['ens33.rx_bytes'].sum).is_equal_to(100)
 
-        def test_datastoreリセットしたら追従する(self, scope_function):
-            (count_get, datastore) = scope_function
+        def test_datastoreリセットしたら追従する(self, yaml_datastore, mock_pyifcountCount_get_from_file):
+            datastore = yaml_datastore
+            count_get = mock_pyifcountCount_get_from_file
             self.pycnt.regist(
                 name="ens33.rx_bytes",
                 filename="path_to_ens33_rx_bytes"
@@ -138,8 +155,9 @@ class Test機能テスト():
             count_get.return_value = 200
             self.pycnt.refresh()
 
-        def test_datastoreファイルを削除したらrefreshの時点で追従する(self, scope_function):
-            (count_get, datastore) = scope_function
+        def test_datastoreファイルを削除したらrefreshの時点で追従する(self, yaml_datastore, mock_pyifcountCount_get_from_file):
+            datastore = yaml_datastore
+            count_get = mock_pyifcountCount_get_from_file
             self.pycnt.regist(
                 name="ens33.rx_bytes",
                 filename="path_to_ens33_rx_bytes",
@@ -160,16 +178,22 @@ class Test機能テスト():
 
 class Testデータファイルが存在しない場合():
     @pytest.fixture(scope='function', autouse=True)
-    def scope_function(self, mocker):
-        remove_if_exists("/tmp/pycount.yml")
+    def mock_pyifcountCount_get_from_file(self, mocker):
         # rx_bytes等が存在しない可能性があるのでmock
         count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
-        datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
-        self.pycnt = pyifcount.PyCount(
-            datastore=datastore
-        )
-        yield (count_get, datastore)
-        remove_if_exists("/tmp/pycount.yml")
+        yield count_get
+        
+    @pytest.fixture(scope='function', autouse=True)
+    def yaml_datastore(self, mocker):
+        try:
+            remove_if_exists("/tmp/pycount.yml")
+            datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+            self.pycnt = pyifcount.PyCount(
+                datastore=datastore
+            )
+            yield datastore
+        finally:
+            remove_if_exists("/tmp/pycount.yml")
 
     def test_インスタンス作成時にデータファイルが作成される(self):
         assert_that(os.path.exists("/tmp/pycount.yml")).is_true()
@@ -184,21 +208,27 @@ class Testデータファイルが存在しない場合():
 
 class Testデータファイルが存在する場合():
     @pytest.fixture(scope='function', autouse=True)
-    def scope_function(self, mocker):
-        remove_if_exists("/tmp/pycount.yml")
-        # データファイル作成
-        data = {'ens33.rx_bytes': 50, 'ens33.tx_bytes': 50}
-        with open('/tmp/pycount.yml', 'w') as f:
-            yaml.dump(data, f)
-        
+    def mock_pyifcountCount_get_from_file(self, mocker):
         # rx_bytes等が存在しない可能性があるのでmock
         count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
-        datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
-        self.pycnt = pyifcount.PyCount(
-            datastore=datastore
-        )
-        yield (count_get, datastore)
-        remove_if_exists("/tmp/pycount.yml")
+        yield count_get
+
+    @pytest.fixture(scope='function', autouse=True)
+    def yaml_datastore(self, mocker):
+        try:
+            remove_if_exists("/tmp/pycount.yml")
+            # データファイル作成
+            data = {'ens33.rx_bytes': 50, 'ens33.tx_bytes': 50}
+            with open('/tmp/pycount.yml', 'w') as f:
+                yaml.dump(data, f)
+            
+            datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
+            self.pycnt = pyifcount.PyCount(
+                datastore=datastore
+            )
+            yield datastore
+        finally:
+            remove_if_exists("/tmp/pycount.yml")
     
     def test_インスタンス作成時にデータファイルが読み込まれる(self):
         self.pycnt.regist(
@@ -219,8 +249,9 @@ class Testデータファイルが存在する場合():
         except KeyError as e:
             assert_that(str(e)).is_equal_to("'ens33.tx_bytes'")
 
-    def test_refreshしたらメモリ情報もデータファイルも更新される(self, scope_function):
-        (count_get, datastore) = scope_function
+    def test_refreshしたらメモリ情報もデータファイルも更新される(self, yaml_datastore, mock_pyifcountCount_get_from_file):
+        datastore = yaml_datastore
+        count_get = mock_pyifcountCount_get_from_file
         self.pycnt.regist(
             name="ens33.rx_bytes",
             filename="path_to_ens33_rx_bytes"

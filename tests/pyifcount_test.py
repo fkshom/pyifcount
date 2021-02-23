@@ -8,16 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Test結合テスト():
-    def scope_function_(self, mocker):
-        count_get = mocker.patch.object(pyifcount.Count, "_get_from_file", return_value=100)
-        datastore = pyifcount.YamlDataStore(filename="/tmp/pycount.yml")
-        self.pycnt = pyifcount.PyCount(
-            datastore=datastore
-        )
-        yield (count_get, datastore)
-
     @pytest.fixture(scope='function', autouse=True)
-    def scope_function(self, mocker):
+    def mock_pyifcountCount_get_from_file(self, mocker):
         self.mock_tx_bytes = 200
         self.mock_rx_bytes = 100
         def _get_from_file_mock(filename):
@@ -32,7 +24,6 @@ class Test結合テスト():
         
         pyifcount.Count._get_from_file = mocker.MagicMock(side_effect=_get_from_file_mock)
         yield
-
 
     def test_インタフェースを登録することができる(self):
         pyifcnt = pyifcount.PyIfCount(
