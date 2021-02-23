@@ -56,5 +56,5 @@ class Test結合テスト():
             autorefresh=True,
             write_interval=60,
         )
-        pyifcnt.add_interface(interface='some_interface', metrics=['tx_bytes', 'rx_byte'])
+        pyifcnt.add_interface(interface='some_interface', metrics=['tx_bytes', 'rx_bytes'])
         assert_that(pyifcnt.some_interface.tx_bytes.sum).is_equal_to(0)
