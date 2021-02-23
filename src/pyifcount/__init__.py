@@ -142,7 +142,7 @@ class YamlDataStore(AbstructDataStore):
     def save(self):
         now = datetime.datetime.now()
         if now.timestamp() - self._seved_datetime.timestamp() > self._write_interval:
-            print(f'save data in {now.strftime("%Y/%m/%d %H:%M:%S.%f")}')
+            logger.debug(f'save data in {now.strftime("%Y/%m/%d %H:%M:%S.%f")}')
             self._write_datafile()
             self._seved_datetime = now
 
