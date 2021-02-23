@@ -14,10 +14,12 @@ def main(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--datastore', choices=['yaml', 'memory'], default='yaml')
     parser.add_argument('-f', '--filename', default='data.yaml')
+    parser.add_argument('--write-interval', type=int, default=0)
+    parser.add_argument('--http', nargs='?', type=int, const=6000)
     args = parser.parse_args(args)
 
     if args.datastore == 'yaml':
-        datastore = pyifcount.YamlDataStore(filename=args.filename)
+        datastore = pyifcount.YamlDataStore(filename=args.filename, write_interval=args.write_interval)
     elif args.datastore == 'memory':
         datastore = pyifcount.MemoryDataStore()
     else:
@@ -27,6 +29,7 @@ def main(args=None):
     pyifcnt = pyifcount.PyIfCount(
         datastore=datastore,
         autorefresh=False,
+        write_interval=args.write_interval,
     )
 
     interfacenames = []

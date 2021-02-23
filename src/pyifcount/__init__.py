@@ -4,6 +4,7 @@ import os
 import yaml
 import logging
 import contextlib
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -100,9 +101,11 @@ class MemoryDataStore(AbstructDataStore):
         self._notify('store_reloaded')
 
 class YamlDataStore(AbstructDataStore):
-    def __init__(self, filename):
+    def __init__(self, filename, write_interval=0):
         self._data = {}
         self._filename = filename
+        self._write_interval = write_interval or 0
+        self._seved_datetime = datetime.datetime.now()
         self._data = self._load_or_create_datafile()
         super().__init__()
 
@@ -137,8 +140,13 @@ class YamlDataStore(AbstructDataStore):
         self._notify('store_reloaded')
 
     def save(self):
-        self._write_datafile()
+        now = datetime.datetime.now()
+        if now.timestamp() - self._seved_datetime.timestamp() > self._write_interval:
+            print(f'save data in {now.strftime("%Y/%m/%d %H:%M:%S.%f")}')
+            self._write_datafile()
+            self._seved_datetime = now
 
+    # TODO: saveせずにreloadした場合は、save直前の状態に戻ってしまう
     def reload(self):
         logger.debug("reload called")
         self._data = self._load_or_create_datafile()
@@ -206,8 +214,8 @@ class Interface2():
         return list(self._metrics.keys())
 
 class PyIfCount():
-    def __init__(self, datastore, interfaces=[], autorefresh=False):
-        self._pycnt = PyCount(datastore=datastore, autorefresh=autorefresh)
+    def __init__(self, datastore, interfaces=[], autorefresh=False, write_interval=1):
+        self._pycnt = PyCount(datastore=datastore, autorefresh=autorefresh,)
         self._interfaces = {}
 
         for interface in interfaces:

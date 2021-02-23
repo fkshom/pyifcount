@@ -48,3 +48,13 @@ class Test結合テスト():
         assert_that(pyifcnt.some_interface.tx_bytes.cur).is_equal_to(300)
         assert_that(pyifcnt.some_interface.rx_bytes.sum).is_equal_to(50)
         assert_that(pyifcnt.some_interface.rx_bytes.cur).is_equal_to(150)
+
+    def test_ファイルへの書き込み間隔を設定できる(self):
+        # 正しくテストはできていない
+        pyifcnt = pyifcount.PyIfCount(
+            datastore=pyifcount.MemoryDataStore(),
+            autorefresh=True,
+            write_interval=60,
+        )
+        pyifcnt.add_interface(interface='some_interface', metrics=['tx_bytes', 'rx_byte'])
+        assert_that(pyifcnt.some_interface.tx_bytes.sum).is_equal_to(0)
