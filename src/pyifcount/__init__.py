@@ -183,21 +183,6 @@ class PyCount():
         return self.targets[key]
 
 class Interface():
-    def __init__(self) -> None:
-        self._metrics = {}
-
-    def __getattr__(self, key):
-        return self._metrics[key]
-
-    def __getitem__(self, key):
-        return self._metrics[key]
-
-    @property
-    def metrics(self):
-        return list(self._metrics.keys())
-
-        
-class Interface2():
     def __init__(self, interfacename, pycnt) -> None:
         self._metrics = {}
         self._interfacename = interfacename
@@ -223,7 +208,7 @@ class PyIfCount():
 
     def add_interface(self, interface, metrics=['rx_bytes', 'tx_bytes']):
         self._interfaces[interface] = type('Interface', (), {})()
-        self._interfaces[interface] = Interface2(interface, self._pycnt)
+        self._interfaces[interface] = Interface(interface, self._pycnt)
         for metric in metrics:
             self._pycnt.regist(
                 name=f"{interface}.{metric}",
