@@ -1,0 +1,12 @@
+[Unit]
+Description=pyifcount
+
+[Service]
+ExecStart=/bin/bash -c '/home/ubuntu/.local/bin/pyifcount --http 6000 --write-interval 60 --read-interval 1'
+WorkingDirectory=/home/ubuntu
+Restart=always
+Type=simple
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target
